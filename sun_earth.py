@@ -2,13 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import math
+import pygame as pg
+from pygame.locals import *
+
+from OpenGL.GL import *
+from OpenGL.GLU import *
+
+import numpy
+
+
+cubeVertices = ((1,1,1),(1,1,-1),(1,-1,-1),(1,-1,1),(-1,1,1),(-1,-1,-1),(-1,-1,1),(-1,1,-1))
+cubeEdges = ((0,1),(0,3),(0,4),(1,2),(1,7),(2,5),(2,3),(3,6),(4,6),(4,7),(5,6),(5,7))
+
+cubeVertices_array = []
+cubeEdges_array = []
 
 ############ Sonnenberechnung
 
-#sonnendurchm = 100 # km
-sonnendurchm = 1392700 #km
-#erddurchmesser = 10 #km
-erddurchmesser = 12742 #km
+sonnendurchm = 1392.7 # km
+#sonnendurchm = 1392700 #km
+erddurchmesser = 12.742 #km
+#erddurchmesser = 12742 #km
 sonne_r = sonnendurchm/2.0
 erd_r = erddurchmesser/2.0
 
@@ -32,9 +46,10 @@ kub_vec = []
 kub_count = 0
 kub_count_innen = 0
 kub_count_rand = 0
+kub_count_rand_z = 0
 kub_count_aussen = 0
 
-max_count = 100
+max_count = 70
 min_count = max_count*(-1)
 maximum = (max_count*2)*(2*max_count)*(2*max_count)
 
@@ -67,7 +82,7 @@ for x in range(min_count, max_count, 1):
                 kub1_6_erg = [kub1_1[0]+vec1_6[0],kub1_1[1]+vec1_6[1],kub1_1[2]+vec1_6[2]]
                 kub1_7_erg = [kub1_1[0]+vec1_7[0],kub1_1[1]+vec1_7[1],kub1_1[2]+vec1_7[2]]
                 kub1_8_erg = [kub1_1[0]+vec1_8[0],kub1_1[1]+vec1_8[1],kub1_1[2]+vec1_8[2]]
-
+                      
                 betrag_kub_v1= math.sqrt(kub1_1_erg[0]*kub1_1_erg[0]+kub1_1_erg[1]*kub1_1_erg[1]+kub1_1_erg[2]*kub1_1_erg[2])
                 betrag_kub_v2= math.sqrt(kub1_2_erg[0]*kub1_2_erg[0]+kub1_2_erg[1]*kub1_2_erg[1]+kub1_2_erg[2]*kub1_2_erg[2])
                 betrag_kub_v3= math.sqrt(kub1_3_erg[0]*kub1_3_erg[0]+kub1_3_erg[1]*kub1_3_erg[1]+kub1_3_erg[2]*kub1_3_erg[2])
@@ -78,7 +93,7 @@ for x in range(min_count, max_count, 1):
                 betrag_kub_v8= math.sqrt(kub1_8_erg[0]*kub1_8_erg[0]+kub1_8_erg[1]*kub1_8_erg[1]+kub1_8_erg[2]*kub1_8_erg[2])
                 
                 tmp = 0
-                vergleich = sonne_r-erd_r
+                vergleich = sonne_r
                 if (betrag_kub_v1 < (vergleich)):
                       tmp = tmp+1
                 if (betrag_kub_v2 < (vergleich)):
@@ -97,12 +112,39 @@ for x in range(min_count, max_count, 1):
                       tmp = tmp+1
                 
                 if ((tmp > 0) and (tmp < 8)):
-                   kub_count_rand+=1    
+                   kub_count_rand+=1
+                   if kub1_1[1] == 0:
+                         kub_count_rand_z+=1
+                         cubeVertices_array.append(kub1_1_erg)
+                         cubeVertices_array.append(kub1_2_erg)
+                         cubeVertices_array.append(kub1_3_erg)
+                         cubeVertices_array.append(kub1_4_erg)
+                         cubeVertices_array.append(kub1_5_erg)
+                         cubeVertices_array.append(kub1_6_erg)
+                         cubeVertices_array.append(kub1_7_erg)
+                         cubeVertices_array.append(kub1_8_erg)
+                         start_node = (kub_count_rand_z-1)*8
+                         cubeEdges_array.append([start_node,start_node+1])
+                         cubeEdges_array.append([start_node,start_node+3])
+                         cubeEdges_array.append([start_node,start_node+4])
+                         cubeEdges_array.append([start_node+1,start_node+2])
+                         cubeEdges_array.append([start_node+1,start_node+5])
+                         cubeEdges_array.append([start_node+2,start_node+6])
+                         cubeEdges_array.append([start_node+2,start_node+3])
+                         cubeEdges_array.append([start_node+3,start_node+7])
+                         cubeEdges_array.append([start_node+4,start_node+5])
+                         cubeEdges_array.append([start_node+4,start_node+7])
+                         cubeEdges_array.append([start_node+5,start_node+6])
+                         cubeEdges_array.append([start_node+6,start_node+7]) 
+                             
                 elif (tmp == 0):
                    kub_count_aussen+=1   
+                                           
                 elif (tmp == 8):
-                   kub_count_innen+=1    
-                
+                   kub_count_innen+=1
+                      
+                   
+    
                 f.write(str(kub1_1[0])+","+str(kub1_1[1])+","+str(kub1_1[2])+","+str(tmp)+"\n")
                 kub_count+=1
         
@@ -121,6 +163,54 @@ print("Anzahl Kuben rand: "+str(kub_count_rand))
 print("Anzahl Kuben aussen: "+str(kub_count_aussen))
 
 f.close()
+
+def wireCube():
+      
+    glBegin(GL_LINES)
+    #cubeVertex = tuple(cubeVertices_array)
+    #cubeEdge = tuple(cubeEdges_array)
+    #cubeVertex = cubeVertices_array
+    #cubeEdges = cubeEdges_array
+    for cubeEdge in cubeEdges_array:
+        for cubeVertex in cubeEdge:
+            glVertex3fv(cubeVertices_array[cubeVertex])
+    glEnd()
+    glColor3f(0.0, 1.0, 0.0)
+    glBegin(GL_LINE_LOOP)
+    side_num = 100
+    radius = sonne_r
+    for vertex in range(0,side_num):
+        angle = float(vertex)*2.0*numpy.pi/side_num
+        glVertex3f(numpy.cos(angle)*radius, 0.0, numpy.sin(angle)*radius)  
+    glEnd()
+
+
+def main():
+    pg.init()
+    display = (800, 800)
+    pg.display.set_mode(display, DOUBLEBUF|OPENGL)
+
+    gluPerspective(45, (display[0]/display[1]), 0.1, 10000.0)
+
+    glTranslatef(0.0, 0.0, -2500)
+
+    while True:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                quit()
+
+        glRotatef(1, 1, 1, 1)
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+        #solidCube()
+        wireCube()
+        pg.display.flip()
+        pg.time.wait(10)
+
+
+if __name__ == "__main__":
+    main()
+
 
 #f = open("vektor.txt", "r")
 #kub_vec = []
